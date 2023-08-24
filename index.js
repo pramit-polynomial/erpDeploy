@@ -61,7 +61,7 @@ const app = express();
 // Replace with your own Google OAuth credentials
 const GOOGLE_CLIENT_ID = '215321644651-34frhpudrs7jl76rbd7ehisklkfejb6c.apps.googleusercontent.com';
 const GOOGLE_CLIENT_SECRET = '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';
-const REDIRECT_URL = 'http://localhost:8000/auth/google/callback';
+const REDIRECT_URL = 'https://erp-40sp.onrender.com/auth/google/callback';
 
 const oauth2Client = new google.auth.OAuth2(
   GOOGLE_CLIENT_ID,
@@ -92,7 +92,7 @@ app.get('/auth/google/callback', async (req, res) => {
 
   // You can use the tokens to access the user's Google services
 
-  res.redirect('http://localhost:8000/profile');
+  res.redirect('https://erp-40sp.onrender.com/profile');
 });
 
 app.get('/profile', (req, res) => {
