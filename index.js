@@ -281,7 +281,7 @@ app.post("/auth/google/fileProtect", async (req, res) => {
     }
     console.log("permissionIds", permissionIds)
     console.log(res2.data.files[0].id)
-    res.send({ message: `authentication is shared with ${email}` })
+    res.status(200).send({ error:false,message: `authentication is shared with ${email}` })
 
   } catch (err) {
     res.status(500).send(err)
@@ -424,8 +424,7 @@ app.post('/auth/google/subSheetProtect', async (req, res) => {
     const response = await sheets.spreadsheets.batchUpdate(request);
     console.log(response)
 
-    res.send("protection part is done")
-
+    res.status(200).send({ error:false,message: `authentication is shared with ${email}` })
   } catch (error) {
     console.error('Error retrieving user email:', error);
     res.status(500).send('Error retrieving user email');
