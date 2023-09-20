@@ -27,7 +27,7 @@ const oauth2Client = new google.auth.OAuth2(
   REDIRECT_URL
 );
 
-const SCOPES = ['profile', 'email', "https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/forms", "https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/forms.body"];
+const SCOPES = ['profile', 'email', "https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/forms", "https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/forms.body", "https://www.googleapis.com/auth/drive.file"];
 
 app.use(session({
   secret: GOOGLE_CLIENT_SECRET, // Change this to a secure secret
@@ -433,10 +433,10 @@ app.post('/auth/google/fileProtect', async (req, res) => {
   try {
     var code = req.query.code;
     const fileType = req.body.fileType;
-    const fileId = req.body.fileId; 
+    const fileId = req.body.fileId;
     const email = req.body.email;
     const role = req.body.role;
-  
+
 
     // Exchange the authorization code for access tokens
     const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', null, {
@@ -477,20 +477,20 @@ app.post('/auth/google/fileProtect', async (req, res) => {
 
 
 
-// Add your OAuth2Client setup and configuration here
+// subsheet protection
 
-app.get('/auth/google/callback', async (req, res) => {
+app.get('/auth/google/subSheetProtect', async (req, res) => {
   const code = req.query.code;
-  // const spreadsheetId = req.body.spreadsheetId; // Use the spreadsheet ID instead of name
-  const spreadsheetId = "1NCcMICn7ysMuSzHEBunkMFwDq8qUoH1Dh15bkqWlUKw"; // Use the spreadsheet ID instead of name
-  // const subSheetName = req.body.subSheetName;
-  const subSheetName = "Sheet1";
-  // const type = req.body.type;
+  const spreadsheetId = req.body.spreadsheetId; // Use the spreadsheet ID instead of name
+  // const spreadsheetId = "1NCcMICn7ysMuSzHEBunkMFwDq8qUoH1Dh15bkqWlUKw"; // Use the spreadsheet ID instead of name
+  const subSheetName = req.body.subSheetName;
+  // const subSheetName = "Sheet2";
   const type = req.body.type;
-  // const email = req.body.email;
-  const email = "pramitchoudhury0205@gmail.com";
-  // const role = req.body.role;
-  const role = "writer";
+  // const type = req.body.type;
+  const email = req.body.email;
+  // const email = "pramit1081@gmail.com";
+  const role = req.body.role;
+  // const role = "writer";
 
   try {
     // Get access token using the authorization code
@@ -504,17 +504,15 @@ app.get('/auth/google/callback', async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
 
-    // Check if email is already shared with the spreadsheet
-    const permissionsResponse = await axios.get(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}/permissions`, {
+    const permissionsResponse = await axios.get(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}/permissions?fields=*`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-      },
+      }
     });
 
     const sharedPermissions = permissionsResponse.data.permissions.filter(permission => permission.emailAddress === email);
 
     if (sharedPermissions.length === 0) {
-      // Share the spreadsheet with the specified email and role
       await axios.post(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}/permissions`, {
         role: role,
         type: 'user',
@@ -539,21 +537,17 @@ app.get('/auth/google/callback', async (req, res) => {
     const subSheet = sheets.find(sheet => sheet.properties.title === subSheetName);
 
     if (subSheet) {
-      // Check if the subSheet has protected ranges
       if (subSheet.protectedRanges && subSheet.protectedRanges.length > 0) {
-        // Add the email to the editors of the first protected range (you can modify this logic as needed)
         subSheet.protectedRanges[0].editors.users.push(email);
 
         // Update the protected range with the new editors
-        await axios.put(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/protectedRanges/${subSheet.protectedRanges[0].protectedRangeId}`, {
-          range: {
-            sheetId: subSheet.properties.sheetId,
-          },
-          requestingUserCanEdit: true,
-          editors: {
-            users: subSheet.protectedRanges[0].editors.users,
-            domainUsersCanEdit: true,
-          },
+        await axios.post(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+          requests:[ {
+            updateProtectedRange: {
+              protectedRange: subSheet.protectedRanges[0],
+              fields: "*"
+            },
+          }]
         }, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -561,19 +555,29 @@ app.get('/auth/google/callback', async (req, res) => {
         });
       } else {
         // Create a new protected range with the email as editor
-        await axios.post(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/protectedRanges`, {
-          range: {
-            sheetId: subSheet.properties.sheetId,
+        await axios.post(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+          {
+            requests: {
+              addProtectedRange: {
+                protectedRange: {
+                  range: {
+                    sheetId: subSheet.properties.sheetId,
+                  },
+                  editors: {
+                    users: [email],
+                    domainUsersCanEdit: true,
+                  },
+                },
+              },
+            },
           },
-          editors: {
-            users: [email],
-            domainUsersCanEdit: true,
-          },
-        }, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+
       }
     }
 
