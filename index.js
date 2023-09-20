@@ -479,7 +479,7 @@ app.post('/auth/google/fileProtect', async (req, res) => {
 
 // subsheet protection
 
-app.get('/auth/google/subSheetProtect', async (req, res) => {
+app.post('/auth/google/subSheetProtect', async (req, res) => {
   const code = req.query.code;
   const spreadsheetId = req.body.spreadsheetId; // Use the spreadsheet ID instead of name
   // const spreadsheetId = "1NCcMICn7ysMuSzHEBunkMFwDq8qUoH1Dh15bkqWlUKw"; // Use the spreadsheet ID instead of name
